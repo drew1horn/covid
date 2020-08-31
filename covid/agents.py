@@ -3,7 +3,8 @@ import math
 
 from mesa import Agent
 
-class People(Agent):
+class People(Agent):        # Should we use the singular Person instead?
+
     def __init__(self, unique_id, model, pos):
         super().__init__(unique_id, model)
         self.pos = np.array(pos)
@@ -44,6 +45,11 @@ class People(Agent):
 
         self.model.space.move_agent(self, new_pos)
 
+    def set_imperial(self, home, work, travel):
+          self.home = np.array(home)
+          self.work = np.array(work)
+          self.travel = travel
+
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)
 
@@ -53,14 +59,12 @@ class Susceptible(People):
         self.name = "Susceptible"
         self.color = "Black"
 
-    def step(self):
-        super().step()
-
 class Infected(People):
     def __init__(self, unique_id, model, pos, asymptomatic):
         super().__init__(unique_id, model, pos)
         self.name = "Infected"
         self.color = "Red"
+
         self.asymptomatic = asymptomatic
         if self.asymptomatic:
             self.energy = 42
@@ -69,6 +73,7 @@ class Infected(People):
 
     def step(self):
         super().step()
+
         self.energy -= 1
         if self.energy == 0:
           person = Recovered(self.model.next_id(), self.model, self.pos)
@@ -79,21 +84,9 @@ class Infected(People):
           self.model.space.place_agent(person, person.pos)
           self.model.schedule.add(person)
 
-    def set_imperial(self, home, work, travel):
-          self.home = np.array(home)
-          self.work = np.array(work)
-          self.travel = travel
-
 class Recovered(People):
     def __init__(self, unique_id, model, pos):
         super().__init__(unique_id, model, pos)
         self.name = "Recovered"
-        self.color = "Green"
+        self.color = "Chartreuse"
 
-    def step(self):
-        super().step()
-
-    def set_imperial(self, home, work, travel):
-          self.home = np.array(home)
-          self.work = np.array(work)
-          self.travel = travel
