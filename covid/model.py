@@ -11,7 +11,7 @@ from mesa.space import ContinuousSpace
 from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
 
-from .agents import Susceptible, Infected, Recovered
+from .agents import Susceptible, Infected, Recovered, Immune
 
 
 class Covid(Model):
@@ -25,6 +25,7 @@ class Covid(Model):
                  height=100,
                  mobility=6,
                  social_distance=2,
+                 immunePct=50,
                  asymptomatic_percentage=50.0,
                  imperial=True):
         '''
@@ -35,30 +36,35 @@ class Covid(Model):
             imperial: Agent rotates between home, work and community.  For home the agent returns to a random point near a fixed home position.  Community has the agent randomly placed in the space.  Work has 90% like home but with a fixed work position and 10% random like community.  This is patterned after the Imperial College model.  Turning off imperial iterates with each agent traveling a random direction and distance from the current position.
             asymptomatic_percentage: Percentage of infected people that are asymptomatic.  Asymptomatic people transmit the virus for 42 time steps versus 15 time steps for those that are symptomatic.
             social_distance: Distance at which neighboring susceptible agents can b ecome infected.
+            immunePct: Percentage of population immune, natural plus vacination.
             mobility: The maximum distance that an agent can travel.
         '''
 
         self.current_id = 0;
-        self.population = population
-        self.mobility = mobility
+
+        self.population      = population
+        self.mobility        = mobility
         self.social_distance = social_distance
+        self.immunePct       = immunePct
+        self.immune          = int(self.population * self.immunePct / 100)
+
         self.asymptomatic_percentage = asymptomatic_percentage
-        self.imperial = imperial
+        self.imperial        = imperial
         if imperial:
             self.state = "home"
         else:
             self.state = "diffusion"
         self.schedule = RandomActivation(self)
-        self.space = ContinuousSpace(width, height, True)
+        self.space    = ContinuousSpace(width, height, True)
         self.make_agents()
-        self.running = True
+        self.running  = True
 
         self.datacollector = DataCollector(
             {"Susceptible": lambda m: self.count("Susceptible"),
              "Infected": lambda m: self.count("Infected"),
              "Recovered": lambda m: self.count("Recovered"),
-             "Symptomatic": lambda m: self.active("symptomatic"),
-             "Asymptomatic": lambda m: self.active("asymptomatic")})
+             "Immune": lambda m: self.count("Immune"),
+            })
 
     def make_agents(self):
         '''
@@ -74,11 +80,19 @@ class Covid(Model):
             self.space.place_agent(person, pos)
             self.schedule.add(person)
 
-        for i in range(self.population - 1):
+        for i in range(self.population - self.immune - 1):
             x = self.random.random() * self.space.x_max
             y = self.random.random() * self.space.y_max
             pos = np.array((x, y))
             person = Susceptible(self.next_id(), self, pos)
+            self.space.place_agent(person, pos)
+            self.schedule.add(person)
+
+        for i in range(self.immune - 1):
+            x = self.random.random() * self.space.x_max
+            y = self.random.random() * self.space.y_max
+            pos = np.array((x, y))
+            person = Immune(self.next_id(), self, pos)
             self.space.place_agent(person, pos)
             self.schedule.add(person)
 
@@ -129,17 +143,3 @@ class Covid(Model):
             if self.schedule._agents[agent_key].name == type:
                 num += 1
         return num
-
-    def active(self, type):
-        agent_keys = list(self.schedule._agents.keys())
-        num = 0
-        for agent_key in agent_keys:
-            if self.schedule._agents[agent_key].name == 'Infected':
-                if type == 'asymptomatic':
-                    if self.schedule._agents[agent_key].asymptomatic:
-                        num += 1
-                else:
-                    if not self.schedule._agents[agent_key].asymptomatic:
-                        num += 1
-        return num
-

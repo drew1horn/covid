@@ -3,8 +3,7 @@ import math
 
 from mesa import Agent
 
-class People(Agent):        # Should we use the singular Person instead?
-
+class People(Agent):
     def __init__(self, unique_id, model, pos):
         super().__init__(unique_id, model)
         self.pos = np.array(pos)
@@ -57,7 +56,7 @@ class Susceptible(People):
     def __init__(self, unique_id, model, pos):
         super().__init__(unique_id, model, pos)
         self.name = "Susceptible"
-        self.color = "Black"
+        self.color = "Blue"
 
 class Infected(People):
     def __init__(self, unique_id, model, pos, asymptomatic):
@@ -89,4 +88,10 @@ class Recovered(People):
         super().__init__(unique_id, model, pos)
         self.name = "Recovered"
         self.color = "Chartreuse"
+
+class Immune(People):
+    def __init__(self, unique_id, model, pos):
+        super().__init__(unique_id, model, pos)
+        self.name = "Immune"
+        self.color = "Gold"
 
